@@ -1,0 +1,50 @@
+<view class="page-wrap">
+
+  <view class="card">
+    <view class="help-h">📲 五个标签页分工</view>
+    <view class="help-li">【背诵】全库默背 / 今日卡片，两种背法：点击遮挡、输入填空</view>
+    <view class="help-li">【录入】手机拍照选图上传 → 自动识别文字和红标挖空 → 保存入库</view>
+    <view class="help-li">【整理】电脑丢进 inbox 文件夹的截图 / PDF / Word 在这里核对入库</view>
+    <view class="help-li">【管理】搜索、按科目筛选、编辑、删除词条</view>
+    <view class="help-li">右上角「…」可转发本小程序卡片给自己</view>
+  </view>
+
+  <view class="card">
+    <view class="help-h">✂️ 挖空标记怎么写</view>
+    <view class="help-li">正文里包上 <text class="hl">{{mN}}</text> → 这块词会被斜纹遮住</view>
+    <view class="help-li">包上 <text class="hl">{{mH}}</text> → 红色遮挡，进每日优先队列，且带 ! 的话词条自动置为高频</view>
+    <view class="help-li">课程截图上老师画的红字会上传时自动变成红色挖空，不用手动标</view>
+    <view class="help-li">「✨ 自动挖空」按高频词表一键标红；在【录入】页也可以用挖空助手输入一个词包标记</view>
+  </view>
+
+  <view class="card">
+    <view class="help-h">🖼️ 内容怎么进来</view>
+    <view class="help-li">手机：【录入】页 → 拍照 / 相册选图（一次最多 9 张）→ 自动识别。每张的识别结果都保留，点文件条可切换载入，不丢字</view>
+    <view class="help-li">电脑：把截图直接丢进电脑的 <text class="hl">inbox</text> 文件夹，5 秒内出草稿，在【整理】页核对入库</view>
+    <view class="help-li">PDF / Word / 纯文本：先发给任意聊天（如文件传输助手），在【录入】页点「从聊天选文件」→ 自动提取合并文字</view>
+    <view class="help-li">重复的照片文件指纹会被记录，「已忽略」里留痕、可一键转为草稿找回</view>
+  </view>
+
+  <view class="card">
+    <view class="help-h">🔄 背诵规则</view>
+    <view class="help-li">点「认识 ✓」下次隔更久，点「忘了 ✗」明天再来；背诵间隔逐级拉长</view>
+    <view class="help-li">「输入填空」模式下每挖一处一个输入框，点「校对填空」立刻标红标绿</view>
+    <view class="help-li">背完的卡这轮不再出现，一轮结束可开新一轮</view>
+  </view>
+
+  <view class="card">
+    <view class="help-h">⚠️ 手机上打不开 / 识别失败</view>
+    <view class="help-li">电脑必须开着背诵程序，手机和电脑连同一个 WiFi</view>
+    <view class="help-li">点右上角「…」→ 开发调试 → 打开后再试（非 https 需要这个开关，鸿蒙微信同理）</view>
+    <view class="help-li">电脑换了 IP：电脑上运行 <text class="hl">ipconfig</text> 看 IPv4 地址，发给维护者改小程序配置（或自己改 config.js 里的 LAN_IP）</view>
+    <view class="help-li">识别失败点草稿卡上的「🔄 重试识别」；截图太长可裁剪后再传</view>
+  </view>
+
+  <view class="card">
+    <view class="help-h">🔒 数据只在你自己的电脑上</view>
+    <view class="help-li">本小程序不连任何云服务，所有词条、图片都存在你电脑的项目文件夹里</view>
+    <view class="help-li">删除按钮删的是库里词条，不可恢复；「丢弃草稿」会留痕可找回，放心用</view>
+  </view>
+
+  <view class="card endhint">🆘 还有问题：在电脑端打开「帮助」页有更完整的排错步骤</view>
+</view>

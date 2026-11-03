@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#c62828">
+<title>使用指北</title>
+<link rel="stylesheet" href="/static/style.css?v=20261103">
+</head>
+<body>
+<div id="chromeTop"></div>
+<main>
+  <div class="card">
+    <h2 style="margin:2px 0 10px">全网最短上手指南（30 秒看完）</h2>
+    <p style="color:var(--muted);font-size:14px;margin:0 0 10px">核心循环：截图 → 自动提字 → 整理入库 → 每天默背</p>
+
+    <h3>① 截图怎么进系统（三条路，任选）</h3>
+    <div class="how">
+      <div class="howitem"><b>手机党（推荐）</b><br>点底部【📷 录入】→ 选择/拍摄截图 → 自动出字 → 顺手点"自动挖空"或手动标红 →【保存】直接入库，背的就是它。</div>
+      <div class="howitem"><b>电脑党（甩进去）</b><br>把截图文件复制进 <code>E:\workspace\政治助手\inbox\</code> 文件夹 → 程序 5 秒自动识别（截图 / PDF / Word / txt 都支持）→ 底部【📥 整理】页出现草稿 → 确认入库。</div>
+      <div class="howitem"><b>发我聊天里</b><br>直接把截图粘到我们对话里说"入库"，我来转录（比 OCR 更准），保存进你的背诵库。</div>
+    </div>
+
+    <h3>② 草稿到入库</h3>
+    <p class="plain">【📥 整理】页：核对文字（错了直接改）→ 点「✨ 自动挖空」一键把高频词包成红色遮挡（也可手动选中文字挖空）→ 【✓ 入背诵库】。</p>
+
+    <h3>③ 怎么背</h3>
+    <p class="plain">【📖 背诵】页默认"全库列表"：直接滚动看所有内容，<span style="color:#c62828;font-weight:700">红色</span>就是高频考点。<br>
+    点「🫥 开始默背」→ 所有关键词被盖住 → 点某字块单独揭晓；「👁 显示」全开。<br>
+    「今日卡片」模式：按遗忘曲线安排今天该背的，每题只出现一轮（认识/忘了都会移出本轮），"忘了"的明天再来。</p>
+
+    <h3>④ 手机怎么当 App 用</h3>
+    <p class="plain">手机连家里 WiFi → 打开电脑上显示的网址（顶栏 📱 可看二维码）→ 浏览器菜单「添加到主屏幕」→ 桌面图标点开即用。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:2px 0 8px">常见问题</h3>
+    <p class="plain"><b>手机打不开？</b>——确认手机和电脑连同一个 WiFi/热点；电脑黑窗口要开着。<br>
+    <b>识别有错字？</b>——整理页直接改正文再入库。<br>
+    <b>数据会丢吗？</b>——全在电脑里 <code>data\</code>，每天自动备份到 <code>backups\</code>。</p>
+  </div>
+</main>
+<div id="chromeBottom"></div>
+<script src="/static/app.js?v=20261103"></script>
+<script>mountChrome('help');</script>
+</body>
+</html>

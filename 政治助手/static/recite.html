@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#c62828">
+<title>政治背诵</title>
+<link rel="stylesheet" href="/static/style.css?v=20261103">
+</head>
+<body>
+<div id="chromeTop"></div>
+<main>
+  <div class="stickrow" id="tools">
+    <span class="grp">
+      <button class="seg on" id="mList" data-v="list">全库默背</button>
+      <button class="seg" id="mCards" data-v="cards">今日卡片</button>
+    </span>
+    <span class="grp">
+      <select id="subject"><option value="">全部科目</option></select>
+    </span>
+    <span class="grp" id="gList">
+      <input type="search" id="q" placeholder="🔍 搜索…" style="width:110px">
+      <button class="btn small" id="btnCover">🫥 开始默背</button>
+      <button class="btn small" id="btnRevealAll">👁 显示</button>
+      <button class="btn small" id="btnFs" title="字号大小">字号</button>
+    </span>
+    <span class="grp" id="gCards" style="display:none">
+      <select id="size">
+        <option value="5">5 题/轮</option><option value="10" selected>10 题/轮</option>
+        <option value="20">20 题/轮</option><option value="50">50 题/轮</option>
+        <option value="9999">全部</option>
+      </select>
+    </span>
+  </div>
+  <div class="substats" id="stats">加载中…</div>
+
+  <div id="wrap"></div>
+
+  <div class="ctrls" id="viewctrls" style="display:none">
+    <button class="btn small" id="btnPrev">←</button>
+    <button class="btn small" id="btnMode">填空</button>
+    <button class="btn small" id="btnNext">→</button>
+  </div>
+  <div class="ctrls" id="revctrls" style="display:none">
+    <button class="btn ok" id="btnOk">认识 ✓</button>
+    <button class="btn ng" id="btnNg">忘了 ✗</button>
+  </div>
+  <div class="ctrls" id="checkctrls" style="display:none">
+    <button class="btn primary" id="btnCheck">校对填空</button>
+  </div>
+</main>
+<div id="chromeBottom"></div>
+<script src="/static/app.js?v=20261103"></script>
+<script>
+mountChrome('recite');
+document.getElementById('subject').innerHTML =
+  '<option value="">全部科目</option>' + SUBJECTS.map(s => `<option>${s}</option>`).join('');
+
+let view = 'list', size = 10, subject = '', mode = 'hide', covered = false;
+let queue = [], idx = 0, all = [];
+
+/* ================= 数据 ================= */
+async function loadAll() {
+  const j = await api('/api/entries' + (subject ? '?subject=' + encodeURIComponent(subject) : ''));
+  all = j.entries || [];
+  all.sort((a, b) => a.created.localeCompare(b.created));   // 按录入时间（视频顺序）
+}
+async function load() {
+  if (view === 'list') {
+    await loadAll();
+    setStats(`共 ${all.length} 条 · 高频 ${all.filter(e => e.hot).length} 条`);
+    document.getElementById('gList').style.display = 'flex';
+    document.getElementById('gCards').style.display = 'none';
+    renderList();
+  } else {
+    const j = await api('/api/today' + (subject ? '?subject=' + encodeURIComponent(subject) : ''));
+    const st = j.stats || {};
+    setStats(`今日待背 ${st.due ?? 0} · 高频 ${st.hot ?? 0} · 全库 ${st.total ?? 0}`);
+    document.getElementById('gList').style.display = 'none';
+    document.getElementById('gCards').style.display = 'flex';
+    queue = (j.queue || []).slice(0, size); idx = 0; render();
+  }
+}
+const setStats = t => document.getElementById('stats').textContent = t;
+
+/* ================= 全库列表（默认） ================= */
+function renderList() {
+  const w = document.getElementById('wrap');
+  document.getElementById('viewctrls').style.display = 'none';
+  document.getElementById('revctrls').style.display = 'none';
+  document.getElementById('checkctrls').style.display = 'none';
+  document.getElementById('btnCover').textContent = covered ? '📖 结束默背' : '🫥 开始默背';
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const rows = q ? all.filter(e =>
+    (plainText(e.text) + ' ' + e.subject + ' ' + e.chapter + ' ' + e.source).toLowerCase().includes(q)) : all;
+  if (!rows.length) {
+    w.innerHTML = `<div class="empty">${all.length ? '没有匹配的词条' :
+      `还没有词条，三条路任选：<br><br>
+      <a class="btn primary" href="/add" style="display:inline-block;text-decoration:none">📷 手机传截图（推荐）</a>
+      <a class="btn" href="/arrange" style="display:inline-block;text-decoration:none">📥 电脑甩进 inbox</a>`}</div>`;
+    return;
+  }
+  w.innerHTML = rows.map((e, i) => `
+    <div class="card listcard">
+      <div class="ehead"><span class="chip" style="color:var(--ink);font-weight:800">${i + 1}</span>${chipTag(e.subject)}
+        ${e.hot ? '<span class="chip hot">高频</span>' : ''}
+        ${e.chapter ? `<span class="chip">${esc(e.chapter)}</span>` : ''}
+        <span class="chip" style="border-color:transparent">${esc(e.created.slice(5, 16).replace('T', ' '))}</span>
+        <a class="link" href="/add?id=${e.id}" style="margin-left:auto">✏️ 编辑</a></div>
+      <div class="textblock">${renderText(e.text, covered ? 'hide' : 'show')}</div>
+    </div>`).join('') +
+    `<div class="card" style="text-align:center;color:var(--muted);font-size:13.5px">
+      ➕ 加新知识点：手机走【📷 录入】上传 · 电脑把截图丢进 <b>inbox 文件夹</b> · 或直接把截图发到对话里说“入库”
+      <br><a class="link" href="/help">❓ 完整使用指北</a></div>`;
+}
+
+/* ================= 今日卡片 ================= */
+function render() {
+  const wrap = document.getElementById('wrap');
+  const done = !queue.length || idx >= queue.length;
+  document.getElementById('revctrls').style.display = !done ? 'flex' : 'none';
+  document.getElementById('viewctrls').style.display = done ? 'none' : 'flex';
+  if (done) {
+    wrap.innerHTML = `<div class="empty">🎉 本轮完成！背过的题这轮都不再出现
+      <br><button class="btn small" onclick="load()">再来一轮</button></div>`;
+    return;
+  }
+  const e = queue[idx], n = countBlanks(e.text);
+  wrap.innerHTML = `<div class="card">
+    <div class="ehead">${chipTag(e.subject)}
+      ${e.hot ? '<span class="chip hot">高频</span>' : ''}
+      ${e.chapter ? `<span class="chip">${esc(e.chapter)}</span>` : ''}</div>
+    <div class="textblock">${renderText(e.text, mode)}</div>
+    <div class="prog" style="text-align:right;color:var(--muted);font-size:12.5px;margin-top:8px">
+      ${idx + 1} / ${queue.length}${mode === 'input' && n ? ` · 待填 ${n} 处` : ''}</div>
+  </div>`;
+  document.getElementById('btnMode').textContent = mode === 'hide' ? '输入填空' : '点击遮挡';
+  document.getElementById('checkctrls').style.display = (mode === 'input' && n > 0) ? 'flex' : 'none';
+}
+
+/* ================= 动作 ================= */
+function step(d) { idx = Math.min(Math.max(idx + d, 0), queue.length); render(); }
+document.getElementById('btnPrev').onclick = () => step(-1);
+document.getElementById('btnNext').onclick = () => step(1);
+document.getElementById('btnMode').onclick = () => { mode = mode === 'hide' ? 'input' : 'hide'; render(); };
+
+function doReview(ok) {
+  const e = queue[idx];
+  post('/api/review', { id: e.id, ok }).then(() => {
+    queue.splice(idx, 1);
+    if (idx >= queue.length) idx = 0;
+    toast(ok ? '👍 背上了' : '明天再见！', true);
+    render();
+  });
+}
+document.getElementById('btnOk').onclick = () => doReview(true);
+document.getElementById('btnNg').onclick = () => doReview(false);
+document.getElementById('btnCheck').onclick = () => {
+  let good = 0, total = 0;
+  document.querySelectorAll('.mk-in').forEach(inp => {
+    total++;
+    if (normalizeAnswer(inp.value) && normalizeAnswer(inp.value) === normalizeAnswer(inp.dataset.ans)) {
+      inp.classList.add('good'); good++;
+    } else { inp.classList.add('bad'); inp.nextElementSibling?.classList.add('show'); }
+  });
+  toast(`答对 ${good} / ${total}`, true);
+};
+
+/* ================= 工具条 ================= */
+document.getElementById('btnCover').onclick = () => { covered = !covered; renderList(); };
+document.getElementById('btnRevealAll').onclick = () =>
+  document.querySelectorAll('.mk.hid').forEach(el => el.classList.add('rev'));
+document.getElementById('btnFs').onclick = ev => { toast(cycleFs(), true); ev.target.blur(); };
+document.getElementById('q').oninput = renderList;
+document.getElementById('subject').onchange = ev => { subject = ev.target.value; load(); };
+document.getElementById('size').onchange = ev => { size = +ev.target.value; load(); };
+['mList', 'mCards'].forEach(id => {
+  document.getElementById(id).onclick = ev => {
+    ev.target.blur();
+    if (view === (id === 'mList' ? 'list' : 'cards')) return;
+    view = id === 'mList' ? 'list' : 'cards';
+    document.querySelectorAll('.seg[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+    load();
+  };
+});
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA') return;
+  if (view === 'list') {
+    if (ev.key === 'c') document.getElementById('btnCover').click();
+    if (ev.key === 'v') document.getElementById('btnRevealAll').click();
+  } else {
+    if (ev.key === 'n' || ev.key === 'ArrowRight') step(1);
+    if (ev.key === 'p' || ev.key === 'ArrowLeft') step(-1);
+    if (ev.key === 'Enter') document.getElementById('btnOk').click();
+  }
+});
+load();
+</script>
+</body>
+</html>

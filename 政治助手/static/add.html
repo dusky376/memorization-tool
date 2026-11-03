@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#c62828">
+<title>录入知识点</title>
+<link rel="stylesheet" href="/static/style.css?v=20261103">
+</head>
+<body>
+<div id="chromeTop"></div>
+<main>
+  <div class="substats" id="cnt"></div>
+  <div class="drop" id="drop">
+    <span class="pc-only" style="display:inline">📷 点这里上传 / 拖入截图或文档，或直接 Ctrl+V 粘贴</span>
+    <span class="ph-only" style="display:none">📷 点这里选择 / 拍摄截图上传</span><br>
+    <small class="pc-only" style="display:inline">支持 PNG 截图 · PDF · Word(.docx) · txt；也可以把文件放进 inbox 文件夹自动识别</small>
+    <small class="ph-only" style="display:none">支持课程截图；也能传 PDF · Word · txt 讲义</small>
+    <input type="file" id="file" accept="image/*,.pdf,.docx,.txt,.md" multiple hidden>
+  </div>
+  <div class="toolbar" id="upTools">
+    <button class="btn small pc-only" id="btnInbox" style="display:inline-block">扫描收件箱</button>
+  </div>
+
+  <div id="cards"></div>
+
+  <div class="card" id="form" style="display:none">
+    <div id="editBadge" class="chip hot" style="display:none">✏️ 编辑模式：改动后点下方「保存」生效</div>
+    <label class="f">科目</label>
+    <select id="fsubject"></select>
+    <label class="f" style="display:flex;align-items:center;gap:8px;margin-top:2px">
+      <input type="checkbox" id="fhot"> 🔴 标为高频考点（背诵页会盖红色徽章）
+    </label>
+    <div class="frow">
+      <div style="flex:2"><label class="f">章节 / 主题</label><input type="text" id="fchapter" placeholder="如：六个必须坚持"></div>
+      <div><label class="f">来源</label><input type="text" id="fsource" placeholder="如：网课第3讲"></div>
+    </div>
+    <label class="f">正文（选中文字后点下方按钮打标记）</label>
+    <textarea id="ftext" placeholder="OCR 识别的文字，或手打知识内容…&#10;{{词}} = 挖空&nbsp;&nbsp;{{!词}} = 挖空+高频红色"></textarea>
+    <div class="toolbar">
+      <button class="btn small" onclick="surround('ftext','{{','}}')">✂️挖空</button>
+      <button class="btn small" onclick="surround('ftext','{{!','}}')">红色挖空</button>
+      <button class="btn small primary" id="btnSave">保存 ▷ 背诵库</button>
+      <button class="btn small" id="btnCancelEdit" style="display:none">取消编辑</button>
+    </div>
+    <div class="preview" id="fprev"></div>
+  </div>
+</main>
+<div id="chromeBottom"></div>
+<script src="/static/app.js?v=20261103"></script>
+<script>
+mountChrome('add');
+const sel = document.getElementById('fsubject');
+sel.innerHTML = SUBJECTS.map(s => `<option>${s}</option>`).join('');
+let editingId = null;
+
+function refreshCnt() {
+  api('/api/entries').then(j => {
+    document.getElementById('cnt').textContent = `全库 ${j.entries.length} 条`;
+  });
+}
+
+/* 一张截图卡片 */
+function addCard(text, file, msg) {
+  document.getElementById('form').style.display = 'block';
+  document.getElementById('ftext').value = text.trim();
+  if (file) {
+    const chip = document.createElement('div');
+    chip.className = 'chip'; chip.textContent = '🖼 ' + file; chip.dataset.file = file;
+    document.getElementById('cards').prepend(chip);
+  }
+  preview(); toast(msg || 'OCR 完成，请核对（重点一般已自动挖空）', true);
+}
+
+function preview() {
+  const t = document.getElementById('ftext').value;
+  const has = hasBlank(t);
+  document.getElementById('fprev').innerHTML =
+    (has ? '背诵预览（遮挡模式）：<br>' : '提示：选中文字点"挖空/红色挖空"来标高频<br>') +
+    `<div class="textblock">${renderText(t, has ? 'hide' : 'show')}</div>`;
+}
+
+const DOC_EXTS = ['pdf', 'docx', 'txt', 'md'];
+
+function isDoc(f) {
+  const ext = (f.name || '').split('.').pop().toLowerCase();
+  return DOC_EXTS.includes(ext);
+}
+
+async function upload(files) {
+  for (const f of files) {
+    const fd = new FormData();
+    if (isDoc(f)) {
+      fd.append('file', f, f.name);
+      toast('文档解析中，页数多会稍慢…');
+      const j = await api('/api/doc_ocr', { method: 'POST', body: fd });
+      if (j.ok) addCard(j.text || '（未提取到文字）', f.name || '文档', '✓ 文档提字完成，热词已自动挖空');
+      else toast('解析失败：' + (j.error || ''), false);
+    } else {
+      fd.append('image', f, f.name || 'paste.png');
+      toast('OCR 处理中…');
+      const j = await api('/api/ocr', { method: 'POST', body: fd });
+      if (j.ok) addCard(j.text, j.file,
+        j.auton ? `✓ OCR+读红标完成，自动挖空 ${j.auton} 处` : 'OCR 完成，可手动标红挖空');
+      else toast('OCR失败：' + (j.error || ''), false);
+    }
+  }
+}
+
+document.getElementById('drop').onclick = () => document.getElementById('file').click();
+document.getElementById('file').onchange = ev => upload([...ev.target.files]);
+const drop = document.getElementById('drop');
+{
+  let n = 0;
+  drop.addEventListener('dragenter', ev => { ev.preventDefault(); drop.classList.add('drag'); n++; });
+  drop.addEventListener('dragleave', () => { if (--n <= 0) drop.classList.remove('drag'); });
+  window.addEventListener('dragover', ev => ev.preventDefault());
+  window.addEventListener('drop', ev => {
+    ev.preventDefault(); drop.classList.remove('drag');
+    const fs = [...(ev.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/') || isDoc(f));
+    if (fs.length) upload(fs);
+  });
+}
+document.addEventListener('paste', ev => {
+  const items = [...(ev.clipboardData?.items || [])].filter(i => i.type.startsWith('image/'));
+  if (items.length) upload(items.map(i => i.getAsFile()));
+});
+
+document.getElementById('btnInbox').onclick = async () => {
+  toast('正在扫描 inbox（截图 / PDF / Word / txt）…');
+  const j = await post('/api/inbox_scan', {});
+  if (!j.ok) { toast('扫描失败', false); return; }
+  const k = await api('/api/drafts');
+  document.getElementById('cards').innerHTML = '';
+  (k.drafts || []).slice(-6).forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'btn small';
+    btn.textContent = '📄 ' + (d.src || d.created || '草稿') + '（' + String(d.text || '').slice(0, 8) + '…）';
+    btn.onclick = () => addCard(d.text, d.src || '');
+    document.getElementById('cards').append(btn);
+  });
+  toast(j.created ? `新识别 ${j.created} 份，去【整理】页确认入库（或点上面载入编辑）` : '没有新文件（丢过的会自动去重）', true);
+};
+
+document.getElementById('btnSave').onclick = async () => {
+  const body = {
+    id: editingId || undefined,
+    subject: document.getElementById('fsubject').value,
+    chapter: document.getElementById('fchapter').value.trim(),
+    source: document.getElementById('fsource').value.trim(),
+    hot: document.getElementById('fhot').checked,
+    text: document.getElementById('ftext').value,
+  };
+  if (!body.text.trim()) { toast('正文为空', false); return; }
+  let j = await post('/api/entry_save', body);
+  if (j.dup && !body.force && confirm((j.error || '检测到重复') + '\n\n仍要保存吗？')) {
+    body.force = true;
+    j = await post('/api/entry_save', body);
+  }
+  if (!j.ok) { toast('未保存：' + (j.error || ''), false); return; }
+  if (editingId) { toast('✓ 已修改保存', true); location.href = '/manage'; return; }
+  toast('✓ 已保存，去【背诵】页开背！', true);
+  resetForm(); refreshCnt();
+};
+
+function resetForm() {
+  editingId = null;
+  document.getElementById('ftext').value = '';
+  document.getElementById('fchapter').value = '';
+  document.getElementById('fsource').value = '';
+  document.getElementById('fhot').checked = false;
+  document.getElementById('editBadge').style.display = 'none';
+  document.getElementById('cards').innerHTML = '';
+  document.getElementById('fprev').innerHTML = '';
+  document.getElementById('btnCancelEdit').style.display = 'none';
+  document.getElementById('form').style.display = 'none';
+  document.getElementById('upTools').style.display = '';
+  document.getElementById('drop').style.display = '';
+  preview(); history.replaceState(null, '', '/add');
+}
+
+/* 编辑已有词条: /add?id=xxx */
+const px = new URLSearchParams(location.search).get('id');
+if (px) api('/api/entries').then(j => {
+  const e = j.entries.find(e => e.id === px);
+  if (e) {
+    editingId = e.id;
+    document.getElementById('form').style.display = 'block';
+    document.getElementById('upTools').style.display = 'none';    // 编辑已有词条：收起上传区，正文顶到首屏
+    document.getElementById('drop').style.display = 'none';
+    document.getElementById('fsubject').value = e.subject;
+    document.getElementById('fchapter').value = e.chapter;
+    document.getElementById('fsource').value = e.source;
+    document.getElementById('fhot').checked = !!e.hot;
+    document.getElementById('editBadge').style.display = '';
+    document.getElementById('ftext').value = e.text;
+    preview();
+    document.getElementById('btnCancelEdit').style.display = 'inline-block';
+    document.title = '编辑词条';
+  }
+});
+
+document.getElementById('fsubject').onchange = preview;
+document.getElementById('ftext').addEventListener('input', preview);
+preview();
+</script>
+</body>
+</html>

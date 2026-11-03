@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#c62828">
+<title>管理词条</title>
+<link rel="stylesheet" href="/static/style.css?v=20261103">
+</head>
+<body>
+<div id="chromeTop"></div>
+<main>
+  <div class="substats" id="stats"></div>
+  <div class="toolbar">
+    <input type="text" id="q" placeholder="🔍 搜索关键词…">
+    <select id="fsubject"><option value="">全部科目</option></select>
+  </div>
+  <div id="list"></div>
+</main>
+<div id="chromeBottom"></div>
+<script src="/static/app.js?v=20261103"></script>
+<script>
+mountChrome('manage');
+const sel = document.getElementById('fsubject');
+sel.innerHTML += SUBJECTS.map(s => `<option>${s}</option>`).join('');
+let all = [];
+
+async function load() {
+  const j = await api('/api/entries');
+  all = j.entries || [];
+  document.getElementById('stats').textContent = `共 ${all.length} 条 · 高频 ${all.filter(e=>e.hot).length} 条`;
+  render();
+}
+
+function render() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const sub = sel.value;
+  const list = all.filter(e =>
+    (!sub || e.subject === sub) &&
+    (!q || plainLike(e).includes(q)));
+  const el = document.getElementById('list');
+  if (!list.length) { el.innerHTML = '<div class="empty">没有匹配的词条</div>'; return; }
+  el.innerHTML = list.map(e => {
+    const title = esc(plainText(e.text).slice(0, 60));
+    return `<div class="row">
+      <div class="t">
+        <p>${e.hot ? '🔴 ' : ''}${title}</p>
+        <small><span class="chip">${esc(e.subject)}</span>${e.chapter ? ' ' + esc(e.chapter) : ''}
+          · 背 ${e.review?.stage || 0} 次 · ${e.review?.due ? '下次 ' + e.review.due : ''}</small>
+      </div>
+      <a class="link" href="/add?id=${e.id}">编辑</a>
+      <a class="link" href="javascript:del('${e.id}')" style="color:var(--hot)">删</a>
+    </div>`;
+  }).join('');
+}
+
+function plainText(t) { return t.replace(/\{\{(!?)([^{}]*)\}\}/g, '$2'); }
+function plainLike(e) {
+  return (plainText(e.text) + ' ' + e.subject + ' ' + (e.chapter || '') + ' ' + (e.source || '')).toLowerCase();
+}
+
+async function del(id) {
+  if (!confirm('确定删除该词条？')) return;
+  const j = await post('/api/entry_delete', { id });
+  toast(j.ok ? '已删除' : '删除失败', j.ok);
+  load();
+}
+
+document.getElementById('q').oninput = render;
+sel.onchange = render;
+document.getElementById('q').focus?.();
+load();
+</script>
+</body>
+</html>

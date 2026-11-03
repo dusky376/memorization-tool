@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#c62828">
+<title>整理草稿</title>
+<link rel="stylesheet" href="/static/style.css?v=20261103">
+</head>
+<body>
+<div id="chromeTop"></div>
+<main>
+  <div class="substats" id="stats">加载中… <button class="btn small" id="btnScan">📂 立即扫描</button>
+    <button class="btn small ok" id="btnAll">⚡ 一键全部入库</button>
+    <button class="btn small" id="btnRescan">♻️ 全量重扫</button>
+    <button class="btn small" id="btnDedupe">🧹 清理重复草稿</button></div>
+  <details class="tip" id="howto" style="margin:4px 0 10px">
+    <summary>📥 内容怎么进来（三种入口，点开看规则）</summary>
+    <div style="margin-top:6px">把<strong>截图或 PDF / Word / 文本</strong>丢进 <code>inbox\</code> 后台 5 秒自动出<strong>草稿</strong>（本页自动刷新）；同一文件重复丢只建一份；与库里重复的自动<strong>忽略</strong>（下方留记录，可转回草稿）；原文件留在 inbox 自己删。</div>
+  </details>
+  <div id="list"></div>
+
+  <div class="card" id="ignoredCard" style="display:none">
+    <div class="crow" style="align-items:center">
+      <b style="font-size:16px">🚫 已忽略的重复内容 <span id="ignN" style="color:var(--muted)"></span></b>
+      <button class="btn small" id="btnIgnClear" style="margin-left:auto">清空记录</button>
+    </div>
+    <div id="ignored"></div>
+    <div class="tip" style="margin-top:6px">这些内容与库里已有的重复，按你的要求未入库（不留草稿）。若是误判，点「转为草稿」人工处理。</div>
+  </div>
+</main>
+<div id="chromeBottom"></div>
+<script src="/static/app.js?v=20261103"></script>
+<script>
+mountChrome('arrange');
+if (!matchMedia('(max-width:560px)').matches) {
+  const h = document.getElementById('howto'); if (h) h.open = true;   // 电脑端默认展开说明
+}
+const sel0 = ['毛中特','马原','史纲','思修','时政','常识','其他'];
+
+/* 自动挖空：候选高频词包成 {{!...}}；跳过已包区域内的子串，防嵌套 */
+const MARK_STOP = new Set(['高频', '考点', '重点', '第一章', '第二章', '第三章']);
+
+function autoMark(text, candidates) {
+  let t = text;
+  for (const c of (candidates || []).slice().sort((a, b) => b.length - a.length)) {
+    if (!c || c.length < 2 || MARK_STOP.has(c)) continue;
+    if (t.includes('{{' + c + '}}') || t.includes('{{!' + c + '}}')) continue;
+    // 现有标记的区间
+    const spans = [];
+    const re = /\{\{!?[^{}]*\}\}/g; let m;
+    while ((m = re.exec(t))) spans.push([m.index, m.index + m[0].length]);
+    let at = -1;
+    for (let k = 0; k + c.length <= t.length; k++) {
+      if (!t.startsWith(c, k)) continue;
+      if (spans.some(([a, b]) => k < b && k + c.length > a)) continue;  // 已包区域内
+      at = k; break;
+    }
+    if (at >= 0) t = t.slice(0, at) + '{{!' + c + '}}' + t.slice(at + c.length);
+  }
+  return t;
+}
+
+async function load() {
+  const [j, igJ] = await Promise.all([
+    api('/api/drafts'),
+    api('/api/ignored').catch(() => ({ ignored: [] })),
+  ]);
+  const ds = (j.drafts || []).sort((a, b) => ((a.ts || 0) - (b.ts || 0)) ||
+    (a.created || '').localeCompare(b.created || ''));   // 文件时间 = 视频顺序
+  const ig = igJ.ignored || [];
+  document.getElementById('stats').textContent =
+    `草稿 ${ds.length} 张 · 自动扫描运行中` + (ig.length ? ` · 已忽略重复 ${ig.length} 条` : '');
+  renderIgnored(ig);
+  const el = document.getElementById('list');
+  if (!ds.length) { el.innerHTML = '<div class="empty">inbox 里没有待处理内容<br><span class="pc-only">把<strong>截图或 PDF / Word / 文本</strong>放进 <code>E:\\workspace\\政治助手\\inbox\\</code>，5 秒内自动出现</span><span class="ph-only">手机在【📷 录入】页<strong>直接拍照 / 上传</strong>，电脑丢文件进 inbox 文件夹</span><br><a class="btn primary ph-only" href="/add" style="display:inline-block;text-decoration:none;margin-top:10px">📷 去录入</a></div>'; return; }
+  el.innerHTML = '';
+  for (const d of ds) {
+    const card = draftCard(d);
+    el.appendChild(card);
+    bindDraft(card, d);          // 挂到 DOM 后再绑定/预览，避免找不到节点
+  }
+}
+
+function modeLabel(m) {
+  if (m === 'win') return '兜底识别';
+  if (m === 'recover') return '忽略恢复';
+  if (m === 'docx') return 'Word解析';
+  if (m === 'txt') return '纯文本';
+  if ((m || '').indexOf('pdf') === 0) return 'PDF解析';
+  return 'AI识别';
+}
+
+function draftCard(d) {
+  const card = document.createElement('div'); card.className = 'card';
+  card.innerHTML = `
+    <div class="draftrow">
+      ${d.img && !d.doc ? `<img class="shot big" src="/shots/${d.img}" loading="lazy" onclick="window.open(this.src)">`
+        : d.doc ? `<div style="font-size:40px;text-align:center;line-height:1.6">📄 ${esc(d.src || '文档')}</div>` : ''}
+      <div style="flex:1">
+        <div class="crow">
+          <span class="chip">📅 ${esc(d.created)}</span>
+          <span class="chip">${modeLabel(d.mode)}</span>
+          ${d.auton ? `<span class="chip" style="border-color:transparent">🤖 已按你的红标自动挖空 ${d.auton} 处</span>` : ''}
+          ${d.err ? `<span class="chip hot">⚠ 识别失败</span>` : ''}
+          ${d.dup ? `<span class="chip hot">⚠ ${esc(d.dup)}</span>` : ''}
+          <a class="link" href="javascript:del('${d.id}')" style="color:var(--hot);margin-left:auto">🗑 丢弃</a>
+        </div>
+        ${d.err ? `<div class="tip" style="margin:6px 0">${esc(d.err)}</div>` : ''}
+        <textarea id="t_${d.id}" style="min-height:120px">${esc(d.text)}</textarea>
+        <div class="frow">
+          <select id="s_${d.id}">${sel0.map(s => `<option ${s === d.subject ? 'selected' : ''}>${s}</option>`).join('')}</select>
+          <input type="text" id="c_${d.id}" value="${esc(d.chapter)}" placeholder="章节/主题">
+          <input type="text" id="r_${d.id}" value="${esc(d.source)}" placeholder="来源">
+        </div>
+        <label class="f">正文标记（已按截图红标自动挖好；仍可手动改）</label>
+        <div class="toolbar">
+          ${d.err ? `<button class="btn small" onclick="retry('${d.id}')">🔄 重试识别</button>` : ''}
+          ${(d.img && !d.doc && !d.auton && String(d.text || '').indexOf('{{') < 0) ? `<button class="btn small primary" onclick="remark('${d.id}')">🤖 读红标自动挖空</button>` : ''}
+          <button class="btn small" onclick="surround('t_${d.id}','{{','}}')">✂️挖空</button>
+          <button class="btn small" onclick="surround('t_${d.id}','{{!','}}')">🔴红色挖空</button>
+          <button class="btn small primary" onclick="auto('${d.id}')">✨ 自动挖空(${(d.candidates || []).length})</button>
+          <button class="btn small ok" onclick="save('${d.id}')" style="flex:2">✓ 入背诵库</button>
+        </div>
+        <div class="preview" id="p_${d.id}"></div>
+      </div>
+    </div>`;
+  return card;
+}
+
+function bindDraft(events, d) {
+  const ta = events.querySelector('#t_' + d.id);
+  ta.addEventListener('input', () => preview(d.id));
+  preview(d.id);
+}
+
+function preview(id) {
+  const t = document.getElementById('t_' + id).value;
+  const has = hasBlank(t);
+  document.getElementById('p_' + id).innerHTML =
+    `<small>${has ? '遮挡预览' : '（还没有标记）'}</small>
+     <div class="textblock">${renderText(t, has ? 'hide' : 'show')}</div>`;
+}
+
+async function retry(id) {
+  toast('重新识别中…');
+  const j = await post('/api/draft_retry', { id });
+  toast(j.ok ? '✓ 重新识别完成' : (j.error || '失败'), j.ok);
+  load();
+}
+
+async function remark(id) {
+  toast('读截图红标中…');
+  const j = await post('/api/draft_remark', { id });
+  toast(j.ok ? '🤖 已按红标+热词自动挖空' : (j.error || '失败'), j.ok);
+  load();
+}
+
+function auto(id) {
+  const ta = document.getElementById('t_' + id);
+  const card = ta.closest('.draftrow');
+  const cands = [];
+  fetch('/api/drafts').then(j => j.json()).then(j => {
+    const d = (j.drafts || []).find(x => x.id === id);
+    ta.value = autoMark(ta.value, d?.candidates || []);
+    preview(id);
+    toast('已按高频词表自动标红', true);
+  });
+}
+
+async function save(id) {
+  const body = {
+    id,
+    subject: document.getElementById('s_' + id).value,
+    chapter: document.getElementById('c_' + id).value.trim(),
+    source: document.getElementById('r_' + id).value.trim(),
+    text: document.getElementById('t_' + id).value,
+    hot: /{{!/.test(document.getElementById('t_' + id).value) || !!document.getElementById('t_' + id).value.match(/\{\{!/)
+  };
+  let j = await post('/api/draft_confirm', body);
+  if (j.dup && !body.force && confirm((j.error || '检测到重复') + '\n\n仍要入库吗？')) {
+    body.force = true;
+    j = await post('/api/draft_confirm', body);
+  }
+  toast(j.ok ? '✓ 已入背诵库！' : (j.error || '未入库'), j.ok);
+  load();
+}
+
+async function del(id) {
+  if (!confirm('丢弃该草稿？')) return;
+  await post('/api/draft_delete', { id });
+  load();
+}
+
+document.getElementById('btnScan').onclick = async () => {
+  toast('扫描 inbox 中…');
+  const j = await post('/api/inbox_scan', {});
+  toast(j.ok ? `新增 ${j.created} 张草稿` : '扫描失败', true);
+  load();
+};
+
+document.getElementById('btnDedupe').onclick = async () => {
+  const j = await post('/api/drafts_dedupe', {});
+  toast(j.ok ? `已清理 ${j.removed} 张重复草稿` : '失败', true);
+  load();
+};
+
+document.getElementById('btnRescan').onclick = async () => {
+  if (!confirm('全量重扫：inbox 里现存的每个文件都重新提字并查重。\n已在库里的内容会被拦下进「已忽略」，不会重复入库。继续？')) return;
+  toast('重扫中（要重新识别每张图，稍等）…');
+  const j = await post('/api/inbox_rescan', {});
+  toast(j.ok ? `重扫完成：新草稿 ${j.created} 份` : '失败', true);
+  load();
+};
+
+document.getElementById('btnAll').onclick = async () => {
+  const cards = [...document.querySelectorAll('#list .card')].filter(c => c.querySelector('textarea[id^="t_"]'));
+  if (!cards.length) { toast('没有草稿可入库', true); return; }
+  if (!confirm('把全部草稿（含自动标红）一次性入背诵库？\n与库里重复的会自动跳过。')) return;
+  toast('批量入库中…');
+  let okN = 0, dupN = 0, errN = 0;
+  for (const c of cards) {
+    const ta = c.querySelector('textarea[id^="t_"]');
+    const id = ta.id.slice(2);
+    const body = {
+      id,
+      subject: (c.querySelector('#s_' + id) || {}).value || '未分类',
+      chapter: (c.querySelector('#c_' + id) || {}).value?.trim() || '',
+      source: (c.querySelector('#r_' + id) || {}).value?.trim() || '',
+      text: ta.value,
+      hot: /\{\{!/.test(ta.value),
+    };
+    const j = await post('/api/draft_confirm', body);
+    if (j.ok) okN++; else if (j.dup) dupN++; else errN++;
+  }
+  toast(`⚡ 完成：入库 ${okN} · 跳过重复 ${dupN}${errN ? ' · 失败 ' + errN : ''}`, true);
+  load();
+};
+
+/* ------------ 已忽略的重复内容 ------------ */
+function renderIgnored(ig) {
+  const card = document.getElementById('ignoredCard');
+  card.style.display = ig.length ? '' : 'none';
+  document.getElementById('ignN').textContent = ig.length ? `（${ig.length}）` : '';
+  document.getElementById('ignored').innerHTML = ig.map(x => `
+    <div class="crow" style="flex-wrap:wrap;gap:6px;margin-top:8px;font-size:14px">
+      <span class="chip">📅 ${esc(x.time || '')}</span>
+      <span class="chip">📄 ${esc(x.src || '')}</span>
+      <span style="color:var(--hot);white-space:nowrap">${esc(String(x.reason || '内容重复').split('（')[0])}</span>
+      <a class="link" href="javascript:recoverIgnored('${x.id}')" style="margin-left:auto;padding:6px 2px">转为草稿</a>
+      <div style="width:100%;color:var(--muted);font-size:13px">${esc(String(x.text || '').slice(0, 90))}${String(x.text || '').length > 90 ? '…' : ''}</div>
+    </div>`).join('');
+}
+
+async function recoverIgnored(id) {
+  const j = await post('/api/ignored_recover', { id });
+  toast(j.ok ? '已转为草稿，请在上方核对入库' : (j.error || '失败'), j.ok);
+  load();
+}
+
+document.getElementById('btnIgnClear').onclick = async () => {
+  if (!confirm('清空忽略记录？（不影响已入库数据；此后同一文件再丢会重新走查重流程）')) return;
+  await post('/api/ignored_clear', {});
+  toast('已清空忽略记录', true);
+  load();
+};
+
+/* 自动刷新：草稿数变化时刷新列表（正在输入时只更新数字，不打断编辑） */
+let lastN = null, lastIg = null;
+setInterval(async () => {
+  if (document.hidden) return;
+  try {
+    const j = await api('/api/drafts');
+    const n = (j.drafts || []).length;
+    let ign = 0;
+    try { ign = ((await api('/api/ignored')).ignored || []).length; } catch (e) {}
+    document.getElementById('stats').textContent =
+      `草稿 ${n} 张 · 自动扫描运行中` + (ign ? ` · 已忽略重复 ${ign} 条` : '');
+    if (n !== lastN || ign !== lastIg) {
+      const busy = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
+      lastN = n; lastIg = ign;
+      if (!busy && !editingTextarea()) load();
+    }
+  } catch (e) { /* 服务重启瞬间忽略 */ }
+}, 5000);
+function editingTextarea() {
+  return document.activeElement?.id?.startsWith('t_');
+}
+load();
+</script>
+</body>
+</html>

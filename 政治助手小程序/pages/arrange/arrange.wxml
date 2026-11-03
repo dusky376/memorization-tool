@@ -1,0 +1,86 @@
+<view class="page-wrap">
+
+  <view class="substats">{{statsLine}}</view>
+
+  <view class="toolbar">
+    <view class="btn small" bindtap="allIn">⚡ 全部入库</view>
+    <view class="btn small" bindtap="dedupe">🧹 清理重复草稿</view>
+  </view>
+
+  <view class="tip">📥 电脑把截图/PDF/Word 丢进 inbox 文件夹 5 秒自动出草稿（本页自动刷新）；点卡片里的图可放大核对。</view>
+
+  <block wx:if="{{!drafts.length}}">
+    <view class="card">
+      <view class="empty">inbox 里没有待处理内容
+        <view>手机去【录入】页直接拍照 / 上传</view>
+        <view class="btn small" style="margin-top:10rpx" bindtap="goAdd">📷 去录入</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ============ 草稿卡列表 ============ -->
+  <view wx:for="{{drafts}}" wx:key="id" class="card">
+    <image wx:if="{{item.img}}" class="shot" src="{{base}}/shots/{{item.img}}" mode="widthFix" data-i="{{index}}" bindtap="previewImg" />
+    <view wx:elif="{{item.doc}}" class="docchip">📄 {{item.src}}</view>
+
+    <view class="ehead rowgap2">
+      <text class="chip">📅 {{item.created}}</text>
+      <text class="chip">{{item.modeTex}}</text>
+      <text wx:if="{{item.auton}}" class="chip">🤖 已按红标自动挖空 {{item.auton}} 处</text>
+      <text wx:if="{{item.err}}" class="chip hot">⚠ 识别失败</text>
+      <text wx:if="{{item.dup}}" class="chip hot">⚠ {{item.dup}}</text>
+      <text class="btnlink red nowrap editlink" bindtap="delDraft" data-i="{{index}}">🗑 丢弃</text>
+    </view>
+
+    <view wx:if="{{item.err}}" class="tip" style="margin:8rpx 0">{{item.err}}</view>
+
+    <textarea class="txt" value="{{item.text}}" maxlength="-1" data-i="{{index}}" bindinput="onDraftText" />
+
+    <view class="frow">
+      <picker range="{{subjects}}" value="{{item.subjectIdx}}" data-i="{{index}}" bindchange="setDraftSubject">
+        <view class="formpick">{{subjects[item.subjectIdx]}} ▾</view>
+      </picker>
+      <input placeholder="章节 / 主题" value="{{item.chapter}}" data-i="{{index}}" bindinput="onDraftChapter" />
+      <input placeholder="来源" value="{{item.source}}" data-i="{{index}}" bindinput="onDraftSource" />
+    </view>
+
+    <label class="f">正文标记（已按截图红标自动挖好）</label>
+    <view class="toolbar">
+      <view class="btn small" wx:if="{{item.err}}" bindtap="retryDraft" data-i="{{index}}">🔄 重试识别</view>
+      <view class="btn small primary" wx:if="{{item.remarkable}}" bindtap="remarkDraft" data-i="{{index}}">🤖 读红标自动挖空</view>
+      <view class="btn small" bindtap="autoMarkDraft" data-i="{{index}}">✨ 自动挖空({{item.candidateN}})</view>
+      <view class="btn small ok-btn grow" bindtap="confirmDraft" data-i="{{index}}">✓ 入背诵库</view>
+    </view>
+
+    <view class="fprev">
+      <view class="phint">{{item.hasBlank ? '遮挡预览（点击文字翻面）' : '（还没有标记）'}}</view>
+      <view class="textblock" data-i="{{index}}" bindtap="toggleDraftPreview">
+        <view class="tb-line" wx:for="{{item.previewLines}}" wx:for-item="row" wx:for-index="ri" wx:key="ri">
+          <block wx:for="{{row.segs}}" wx:for-item="seg" wx:for-index="si" wx:key="key">
+            <text wx:if="{{seg.t==='txt'}}">{{seg.s}}</text>
+            <text wx:elif="{{item.prevRevealed}}" class="mk rev {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+            <text wx:else class="mk hid {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+          </block>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 已忽略 ============ -->
+  <view wx:if="{{ignored.length}}" class="card">
+    <view class="ehead">
+      <text class="chip hot" style="font-weight:800">🚫 已忽略的重复内容（{{ignored.length}}）</text>
+      <text class="btnlink editlink" bindtap="clearIgnored">清空记录</text>
+    </view>
+    <view wx:for="{{ignored}}" wx:key="id" class="igrow">
+      <view class="ehead rowgap2">
+        <text class="chip">📅 {{item.time}}</text>
+        <text class="chip">📄 {{item.src}}</text>
+        <text class="igreason">{{item.reason}}</text>
+        <text class="btnlink editlink" bindtap="recoverIg" data-i="{{index}}">转为草稿</text>
+      </view>
+      <view class="igtext">{{item.snip}}</view>
+    </view>
+    <view class="tip" style="margin-top:12rpx">这些内容与库里已有重复，按你的要求未入库。若是误判，点「转为草稿」人工处理。</view>
+  </view>
+</view>

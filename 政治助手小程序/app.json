@@ -1,0 +1,30 @@
+{
+  "pages": [
+    "pages/recite/recite",
+    "pages/add/add",
+    "pages/arrange/arrange",
+    "pages/manage/manage",
+    "pages/help/help"
+  ],
+  "window": {
+    "navigationBarTitleText": "政治背诵",
+    "navigationBarBackgroundColor": "#f6f4ef",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f6f4ef",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#8b93a1",
+    "selectedColor": "#c62828",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/recite/recite", "text": "背诵", "iconPath": "images/tab/recite.png", "selectedIconPath": "images/tab/recite-hot.png" },
+      { "pagePath": "pages/add/add", "text": "录入", "iconPath": "images/tab/add.png", "selectedIconPath": "images/tab/add-hot.png" },
+      { "pagePath": "pages/arrange/arrange", "text": "整理", "iconPath": "images/tab/arrange.png", "selectedIconPath": "images/tab/arrange-hot.png" },
+      { "pagePath": "pages/manage/manage", "text": "管理", "iconPath": "images/tab/manage.png", "selectedIconPath": "images/tab/manage-hot.png" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

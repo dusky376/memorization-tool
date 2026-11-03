@@ -1,0 +1,176 @@
+/* 政治背诵小程序 - 全局样式（色板与网页版 style.css 一致） */
+page {
+  background: #f6f4ef;
+  color: #24292f;
+  font-size: 30rpx;
+  line-height: 1.65;
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.page-wrap { padding: 18rpx 24rpx 60rpx; }
+
+.card {
+  background: #fff;
+  border: 1rpx solid #e6e2d8;
+  border-radius: 22rpx;
+  padding: 26rpx;
+  margin: 18rpx 0;
+  box-shadow: 0 2rpx 8rpx rgba(35, 28, 12, .05);
+}
+
+.substats { color: #8b93a1; font-size: 24rpx; margin: 6rpx 4rpx 14rpx; }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; border: 2rpx solid #e6e2d8; border-radius: 18rpx;
+  padding: 16rpx 26rpx; font-size: 28rpx; font-weight: 600; color: #24292f;
+  line-height: 1.3;
+}
+.btn.primary { background: #24292f; border-color: #24292f; color: #fff; }
+.btn.ok-btn  { background: #e9f5e9; border-color: #2e7d32; color: #2e7d32; }
+.btn.ng-btn  { background: #fdecec; border-color: #c62828; color: #c62828; }
+.btn.small   { font-size: 25rpx; padding: 12rpx 22rpx; border-radius: 15rpx; }
+.btn.grow    { flex: 2; }
+.btn::after { border: none; }
+.btnlink { color: #1565c0; font-size: 26rpx; font-weight: 600; padding: 8rpx 6rpx; }
+.btnlink.red { color: #c62828; }
+.btnlink.nowrap { white-space: nowrap; }
+
+/* ---------- 分段控制 ---------- */
+.segbar { display: flex; align-items: center; gap: 12rpx; flex-wrap: wrap; }
+.seg {
+  border: 2rpx solid #e6e2d8; background: #fff; border-radius: 16rpx;
+  padding: 14rpx 26rpx; font-size: 27rpx; font-weight: 700; color: #8b93a1;
+}
+.seg.on { background: #24292f; border-color: #24292f; color: #fff; }
+
+/* ---------- 条件行 ---------- */
+.toolbar { display: flex; gap: 12rpx; flex-wrap: wrap; align-items: center; margin: 14rpx 0; }
+.stickrow {
+  display: flex; flex-wrap: wrap; gap: 12rpx; align-items: center;
+  margin: 10rpx 0 4rpx;
+}
+.search {
+  flex: 1 1 100%; min-width: 0; box-sizing: border-box;
+  background: #fff; border: 2rpx solid #e6e2d8; border-radius: 16rpx;
+  padding: 14rpx 20rpx; font-size: 27rpx;
+}
+
+.chip {
+  display: inline-block; border: 1.5rpx solid #e6e2d8; background: #faf8f3;
+  color: #8b93a1; border-radius: 999rpx; padding: 4rpx 16rpx;
+  font-size: 22rpx; margin: 0 8rpx 8rpx 0; line-height: 1.55;
+}
+.chip.ink  { color: #24292f; font-weight: 700; }
+.chip.subj { color: #24292f; font-weight: 700; }
+.chip.hot  { background: #fdecec; border-color: #f2c4c4; color: #c62828; font-weight: 700; }
+.chip.unline { border-color: transparent; background: transparent; }
+
+.empty { text-align: center; color: #8b93a1; padding: 70rpx 20rpx; line-height: 2; }
+.tip { background: #fdf6e3; border: 1rpx solid #efe5c6; border-radius: 14rpx; padding: 16rpx 20rpx; color: #8a7a4a; font-size: 24rpx; line-height: 1.7; }
+
+/* ---------- 表单 ---------- */
+label.f { display: block; margin: 16rpx 0 8rpx; font-size: 24rpx; font-weight: 700; color: #555c66; }
+.frow { display: flex; gap: 12rpx; flex-wrap: wrap; margin: 10rpx 0; }
+.frow > input, .frow > picker {
+  flex: 1; min-width: 190rpx; background: #fff;
+  border: 2rpx solid #e6e2d8; border-radius: 14rpx; padding: 14rpx 18rpx; font-size: 26rpx;
+}
+.frow > picker { min-width: 210rpx; padding: 20rpx 18rpx; }
+.txt {
+  width: 100%; box-sizing: border-box; background: #fff;
+  border: 2rpx solid #e6e2d8; border-radius: 16rpx;
+  padding: 18rpx; min-height: 240rpx; font-size: 28rpx; line-height: 1.7;
+}
+
+.drop {
+  border: 3rpx dashed #cfc8b8; border-radius: 22rpx; background: #fff;
+  padding: 44rpx 20rpx; text-align: center; color: #8b93a1; margin: 16rpx 0;
+}
+.drop .big { font-size: 30rpx; font-weight: 700; color: #4a4f57; }
+.drop small { display: block; margin-top: 6rpx; font-size: 24rpx; }
+
+/* ---------- 正文挖空渲染（rich 结构由 WXML 数据驱动） ---------- */
+.textblock { font-size: 29rpx; line-height: 1.95; margin-top: 10rpx; word-break: break-all; }
+.tb-line { margin: 2rpx 0; }
+.mk.text { box-sizing: border-box; }
+.mk.rev { color: #2f6fed; background: #e9f0fd; font-weight: 700; border-radius: 6rpx; padding: 2rpx 8rpx; }
+.mk.rev.hot { color: #c62828; background: #fdecec; }
+.mk.hid {
+  color: transparent;
+  background: repeating-linear-gradient(135deg, #f1e9cf 0 14rpx, #e9dcb1 14rpx 28rpx);
+  box-shadow: inset 0 0 0 1rpx #dccf9f;
+  border-radius: 8rpx; font-weight: 700; padding: 2rpx 10rpx;
+}
+.mk.hid.hot {
+  background: repeating-linear-gradient(135deg, #fbdcdd 0 14rpx, #f5c6c8 14rpx 28rpx);
+  box-shadow: inset 0 0 0 1rpx #e8a8ab;
+}
+.mk-in-input {
+  display: inline-block; vertical-align: baseline;
+  border-bottom: 3rpx solid #2f6fed;
+  min-width: 140rpx; height: 1.5em; box-sizing: border-box;
+  font-size: 29rpx; padding: 0 6rpx; margin: 0 4rpx;
+  background: #fff;
+}
+.mk-in-input.good { border-bottom-color: #2e7d32; color: #2e7d32; font-weight: 700; }
+.mk-in-input.bad  { border-bottom-color: #c62828; color: #c62828; }
+.mk-ans { color: #2f6fed; background: #e9f0fd; font-weight: 700; border-radius: 6rpx; padding: 2rpx 8rpx; }
+
+.ehead { display: flex; flex-wrap: wrap; align-items: center; row-gap: 6rpx; }
+.ehead .editlink { margin-left: auto; }
+.rowgap2 { row-gap: 2rpx; }
+.prog { text-align: right; color: #8b93a1; font-size: 24rpx; margin-top: 10rpx; }
+.ctr { display: flex; gap: 16rpx; justify-content: center; margin: 20rpx 0; flex-wrap: wrap; }
+.ctr .btn { min-width: 180rpx; }
+
+.shot { width: 100%; border-radius: 14rpx; border: 1rpx solid #e6e2d8; }
+.docchip { font-size: 70rpx; text-align: center; line-height: 1.6; }
+
+/* ---------- 管理行 ---------- */
+.rowitem { padding: 20rpx 22rpx; }
+.rowt { font-size: 28rpx; line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rowmeta { color: #8b93a1; font-size: 23rpx; margin: 8rpx 0 2rpx; }
+.rowlinks { display: flex; gap: 8rpx; justify-content: flex-end; }
+
+/* ---------- 补：各页用到的杂项类 ---------- */
+.mk-in-input.hot { border-bottom-color: #c62828; }
+.mk-ans-inline { color: #c62828; background: #fdecec; font-weight: 700; border-radius: 6rpx; padding: 0 8rpx; }
+.subjpick { margin-left: auto; }
+.dropsub { display: block; margin-top: 6rpx; font-size: 24rpx; color: #8b93a1; }
+
+.filelist { display: flex; flex-wrap: wrap; margin: 2rpx 0 6rpx; }
+.filechip {
+  display: inline-flex; align-items: center;
+  background: #fff; border: 2rpx solid #e6e2d8; border-radius: 999rpx;
+  padding: 10rpx 20rpx; font-size: 23rpx; color: #4a4f57;
+  margin: 0 10rpx 10rpx 0; max-width: 100%;
+}
+.filechip.on { background: #24292f; border-color: #24292f; color: #fff; font-weight: 700; }
+
+/* picker 触发钮：加页独立用 .formpick 整盒样式；整理页在 .frow 里由 picker 承担盒子 */
+.formpick {
+  display: inline-block; background: #fff;
+  border: 2rpx solid #e6e2d8; border-radius: 14rpx;
+  padding: 14rpx 18rpx; font-size: 26rpx; color: #4a4f57; box-sizing: border-box;
+}
+.frow > picker {
+  border: none; background: transparent; padding: 14rpx 0;
+  min-width: 210rpx; box-sizing: border-box;
+}
+.frow > picker .formpick { display: block; padding: 0; border: none; background: transparent; }
+
+.fprev { margin-top: 14rpx; border-top: 2rpx dashed #e6e2d8; padding-top: 12rpx; }
+.phint { color: #8b93a1; font-size: 22rpx; margin-bottom: 6rpx; }
+
+.igrow { padding: 14rpx 0; border-bottom: 1rpx dashed #eee7d9; }
+.igreason { flex: 1 1 auto; min-width: 140rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #8b93a1; font-size: 22rpx; }
+.igtext { color: #8b93a1; font-size: 24rpx; line-height: 1.6; margin-top: 4rpx; }
+.endhint { text-align: center; color: #8b93a1; font-size: 24rpx; }
+
+/* ---------- 帮助页 ---------- */
+.help-h { font-weight: 800; font-size: 28rpx; margin-bottom: 10rpx; color: #c62828; }
+.help-li { color: #4a4f57; font-size: 26rpx; line-height: 1.75; margin: 6rpx 0; }
+.hl { color: #c62828; font-weight: 700; }

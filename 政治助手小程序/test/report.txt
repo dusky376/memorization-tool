@@ -1,0 +1,7 @@
+WXML 检查：
+  pages\add\add.wxml  表达式 30 处
+  pages\arrange\arrange.wxml  表达式 55 处
+  pages\help\help.wxml  表达式 2 处
+  pages\manage\manage.wxml  表达式 27 处
+  pages\recite\recite.wxml  表达式 58 处
+OK 全部 .wxml 标签配对 / 表达式 / 条件链 通过

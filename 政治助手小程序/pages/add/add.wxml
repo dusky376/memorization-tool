@@ -1,0 +1,74 @@
+<view class="page-wrap">
+
+  <!-- 上传区：编辑已有词条时隐藏 -->
+  <block wx:if="{{!editing}}">
+    <view class="drop" bindtap="chooseImage">
+      <view class="big">📷 点这里选择 / 拍摄截图上传</view>
+      <view class="dropsub">支持课程截图 · 自动识别文字和红标挖空</view>
+    </view>
+    <view class="toolbar">
+      <view class="btn small" bindtap="chooseImage">📷 拍照 / 选图</view>
+      <view class="btn small" wx:if="{{canPickDoc}}" bindtap="chooseDoc">📄 从聊天选 PDF / Word</view>
+    </view>
+
+    <!-- 上传过的文件条（点任意一条可重新载入它的识别文本，不丢字） -->
+    <view class="filelist" wx:if="{{filesView.length}}">
+      <text wx:for="{{filesView}}" wx:key="fid"
+            class="filechip {{index===curFile ? 'on' : ''}}"
+            bindtap="loadFileText" data-i="{{index}}">
+        {{index===curFile ? '▶ ' : ''}}{{item.short}}
+      </text>
+    </view>
+  </block>
+  <view wx:else class="chip hot">✏️ 编辑模式：改完点下方「保存」生效</view>
+
+  <!-- 录入表单 -->
+  <view class="card">
+    <label class="f">科目</label>
+    <picker range="{{subjects}}" value="{{subjectIdx}}" bindchange="setSubject">
+      <view class="formpick">{{subjects[subjectIdx]}} ▾</view>
+    </picker>
+
+    <view class="frow">
+      <input placeholder="章节 / 主题（可空）" value="{{chapter}}" bindinput="setChapter" />
+      <input placeholder="来源（可空）" value="{{source}}" bindinput="setSource" />
+    </view>
+
+    <label class="f">高频词条（进入每日优先队列）</label>
+    <switch checked="{{hot}}" bindchange="setHot" color="#c62828" />
+
+    <label class="f">正文（{{mN}} 挖空 · {{mH}} 红色挖空）</label>
+    <textarea class="txt" value="{{text}}" bindinput="onText" maxlength="-1" placeholder="上传截图自动识别进这里；也可以直接打字。标记说明在下方" />
+    <view class="toolbar">
+      <view class="btn small" bindtap="helperHot">✂️ 挖空助手（红色）</view>
+      <view class="btn small" bindtap="helperNormal">✂️ 普通挖空</view>
+    </view>
+
+    <!-- 背诵预览（有标记时遮挡演示） -->
+    <view class="fprev">
+      <view class="phint">{{hasBlank ? '背诵预览（点击文字可翻面）' : '提示：还没有挖空标记'}}</view>
+      <view class="textblock" bindtap="togglePreview">
+        <view class="tb-line" wx:for="{{previewLines}}" wx:for-item="row" wx:for-index="ri" wx:key="ri">
+          <block wx:for="{{row.segs}}" wx:for-item="seg" wx:for-index="si" wx:key="key">
+            <text wx:if="{{seg.t==='txt'}}">{{seg.s}}</text>
+            <text wx:elif="{{prevRevealed}}" class="mk rev {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+            <text wx:else class="mk hid {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <view class="toolbar">
+      <view class="btn primary grow" bindtap="save">💾 保存入库</view>
+      <view class="btn small" wx:if="{{editing}}" bindtap="cancelEdit">取消编辑</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <label class="f">💡 挖空标记怎么用</label>
+    <view class="tip">
+      <view>选中区域想挡住 → 包上 {{mN}}；最重要的高频词 → {{mH}}（红色遮挡，会进每日优先队列）。</view>
+      <view>上传课程截图时，老师画的红字会自动变成红色挖空，不用动手。</view>
+    </view>
+  </view>
+</view>

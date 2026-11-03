@@ -1,0 +1,41 @@
+<view class="page-wrap">
+
+  <view class="substats">{{stats}}</view>
+
+  <view class="stickrow">
+    <input class="search" placeholder="🔍 搜索关键词…" value="{{q}}" bindinput="onQ" />
+    <picker range="{{subjects}}" value="{{subjectIdx}}" bindchange="setSubject">
+      <view class="btn small">{{subjects[subjectIdx]}} ▾</view>
+    </picker>
+    <picker range="{{orderLabels}}" value="{{orderIdx}}" bindchange="setOrder">
+      <view class="btn small">{{orderLabels[orderIdx]}} ▾</view>
+    </picker>
+  </view>
+
+  <block wx:if="{{!entries.length}}">
+    <view class="card">
+      <view class="empty">{{loaded ? '没有匹配的词条' : '加载中…'}}
+        <view wx:if="{{loaded}}" class="btn small" style="margin-top:10rpx" bindtap="goAdd">📷 去录入</view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:for="{{entries}}" wx:key="id" class="card">
+    <view class="rowt">{{item.hot ? '🔴 ' : ''}}{{item.title}}</view>
+    <view class="rowmeta">
+      <text class="chip subj">{{item.subject}}</text>
+      <text wx:if="{{item.chapter}}" class="chip">{{item.chapter}}</text>
+      <text wx:if="{{item.reviewN}}" class="chip">背 {{item.reviewN}} 次</text>
+      <text wx:if="{{item.due}}" class="chip">下次 {{item.due}}</text>
+      <text wx:if="{{item.source}}" class="chip unline">{{item.source}}</text>
+    </view>
+    <view class="rowlinks">
+      <view class="btnlink" bindtap="goEdit" data-id="{{item.id}}">✏️ 编辑</view>
+      <view class="btnlink red nowrap" bindtap="delEntry" data-id="{{item.id}}" data-t="{{item.title}}">🗑 删除</view>
+    </view>
+  </view>
+
+  <view class="card endhint" wx:if="{{entries.length}}">
+    ❓ 不懂挖空标记 / 上传失败：点右上角「管理」下方 <text class="btnlink" bindtap="goHelp">使用说明</text>
+  </view>
+</view>

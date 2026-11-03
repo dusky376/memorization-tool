@@ -1,0 +1,104 @@
+<view class="page-wrap">
+
+  <!-- 分段控制：写法对齐网页版"全库默背 / 今日卡片" -->
+  <view class="segbar">
+    <view class="seg {{view==='list'?'on':''}}" bindtap="setView" data-v="list">全库默背</view>
+    <view class="seg {{view==='cards'?'on':''}}" bindtap="setView" data-v="cards">今日卡片</view>
+    <picker class="subjpick" range="{{subjects}}" value="{{subjectIdx}}" bindchange="setSubject">
+      <view class="btn small">{{subjects[subjectIdx]}} ▾</view>
+    </picker>
+  </view>
+
+  <!-- ============ 全库列表 ============ -->
+  <block wx:if="{{view==='list'}}">
+    <view class="stickrow">
+      <input class="search" placeholder="🔍 搜索…" value="{{q}}" bindinput="onQ" />
+      <view class="btn small" bindtap="toggleCover">{{covered ? '📖 结束默背' : '🫥 开始默背'}}</view>
+      <view class="btn small" bindtap="doRevealAll">👁 显示</view>
+    </view>
+    <view class="substats">{{stats}}</view>
+
+    <view wx:for="{{entries}}" wx:key="id" class="card listcard">
+      <view class="ehead">
+        <text class="chip ink">{{index + 1}}</text>
+        <text class="chip subj">{{item.subject}}</text>
+        <text wx:if="{{item.hot}}" class="chip hot">高频</text>
+        <text wx:if="{{item.chapter}}" class="chip">{{item.chapter}}</text>
+        <text class="chip unline">{{item.createdShort}}</text>
+        <text class="btnlink editlink" bindtap="goEdit" data-id="{{item.id}}">✏️ 编辑</text>
+      </view>
+      <view class="textblock" bindtap="tapRevealEntry" data-i="{{index}}">
+        <view class="tb-line" wx:for="{{item.lines}}" wx:for-item="row" wx:for-index="ri" wx:key="ri">
+          <block wx:for="{{row.segs}}" wx:for-item="seg" wx:for-index="si" wx:key="key">
+            <text wx:if="{{seg.t==='txt'}}">{{seg.s}}</text>
+            <text wx:elif="{{!covered || item.revealed || revealAll}}" class="mk rev {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+            <text wx:else class="mk hid {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <view class="card endhint">
+      ➕ 加新知识点：在【录入】页拍照上传，电脑把截图丢进 inbox 文件夹
+    </view>
+  </block>
+
+  <!-- ============ 今日卡片 ============ -->
+  <block wx:if="{{view==='cards'}}">
+    <view class="substats">{{statsCards}}</view>
+
+    <block wx:if="{{done}}">
+      <view class="card">
+        <view class="empty">🎉 本轮完成！背过的题这轮不再出现</view>
+        <view class="ctr">
+          <view class="btn small" bindtap="reloadCards">再来一轮</view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="card">
+        <view class="ehead">
+          <text class="chip subj">{{cur.subject}}</text>
+          <text wx:if="{{cur.hot}}" class="chip hot">高频</text>
+          <text wx:if="{{cur.chapter}}" class="chip">{{cur.chapter}}</text>
+        </view>
+        <view class="textblock" bindtap="tapRevealCard">
+          <view class="tb-line" wx:for="{{cur.lines}}" wx:for-item="row" wx:for-index="ri" wx:key="ri">
+            <block wx:for="{{row.segs}}" wx:for-item="seg" wx:for-index="si" wx:key="key">
+              <text wx:if="{{seg.t==='txt'}}">{{seg.s}}</text>
+              <block wx:elif="{{mode==='input' && seg.t==='blank'}}">
+                <input class="mk-in-input {{seg.hot ? 'hot' : ''}} {{seg.good===1 ? 'good' : seg.good===2 ? 'bad' : ''}}"
+                       style="width:{{seg.w}}em"
+                       value="{{seg.inp}}" data-ri="{{ri}}" data-si="{{si}}" bindinput="onBlank" />
+                <text wx:if="{{seg.good===2}}" class="mk-ans-inline">{{seg.s}}</text>
+              </block>
+              <block wx:elif="{{cur.revealed}}">
+                <text class="mk rev {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+              </block>
+              <block wx:else>
+                <text class="mk hid {{seg.hot ? 'hot' : ''}}">{{seg.s}}</text>
+              </block>
+            </block>
+          </view>
+        </view>
+        <view class="prog">
+          {{idx + 1}} / {{queue.length}}{{mode==='input' && blankN ? ' · 待填 ' + blankN + ' 处' : ''}}
+        </view>
+      </view>
+
+      <view class="ctr">
+        <view class="btn" bindtap="stepPrev">←</view>
+        <view class="btn" bindtap="toggleMode">{{mode==='hide' ? '输入填空' : '点击遮挡'}}</view>
+        <view class="btn" bindtap="stepNext">→</view>
+      </view>
+      <view class="ctr" wx:if="{{mode==='hide'}}">
+        <view class="btn ok-btn" bindtap="doOk">认识 ✓</view>
+        <view class="btn ng-btn" bindtap="doNg">忘了 ✗</view>
+      </view>
+      <view class="ctr" wx:if="{{mode==='input' && blankN}}">
+        <view class="btn primary" bindtap="doCheck">校对填空</view>
+      </view>
+    </block>
+  </block>
+</view>
